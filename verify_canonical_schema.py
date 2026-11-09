@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Repeatable SQLite verification suite for Store Manager Pro Fresh Baseline v2.
+"""Repeatable SQLite verification suite for Store Manager Pro Fresh Baseline v3.
 Run: python verify_canonical_schema.py
 This validates SQL invariants. Ed25519 verification is separately exercised here;
 Ktor integration/platform Keystore behavior is not proven by this SQLite-only suite.
@@ -85,7 +85,7 @@ INSERT INTO expense_categories(id,tenant_id,name) VALUES('EXP_CAT_1','TENANT_DEF
 INSERT INTO products(id,tenant_id,name,barcode,base_unit_id,has_variants) VALUES('PROD_1','TENANT_DEFAULT','Product One','111111','UOM_PIECE',0);
 INSERT INTO products(id,tenant_id,name,barcode,base_unit_id,has_variants) VALUES('PROD_2','TENANT_DEFAULT','Product Two','222222','UOM_PIECE',0);
 INSERT INTO products(id,tenant_id,name,base_unit_id,has_variants) VALUES('PROD_VAR','TENANT_DEFAULT','Variant Product','UOM_PIECE',1);
-INSERT INTO product_variants(id,product_id,sku,barcode,variant_name) VALUES('VAR_1','PROD_VAR','SKU_VAR_1','333333','Red');
+INSERT INTO product_variants(id,product_id,sku,barcode,variant_name,tenant_id) VALUES('VAR_1','PROD_VAR','SKU_VAR_1','333333','Red','TENANT_DEFAULT');
 INSERT INTO price_lists(id,tenant_id,name,currency_code,is_default) VALUES('PL_1','TENANT_DEFAULT','Default DZD','DZD',1);
 """)
 
@@ -106,12 +106,12 @@ seed_stock(stock2, event='OPEN2')
 seed_stock(stock1, wh='WH_AUX', qty=30_000, cost=100_000, event='OPEN_AUX')
 
 # T01-T04: baseline and seed validity.
-test_ok('T01 schema creates v2 tables, indexes, triggers and user_version', lambda: (
+test_ok('T01 schema creates v3 tables, indexes, triggers and user_version', lambda: (
     assert_eq(con.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").fetchone()[0],56,'table count'),
-    assert_eq(con.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND sql IS NOT NULL").fetchone()[0],108,'explicit index count'),
-    assert_eq(con.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='trigger'").fetchone()[0],186,'trigger count'),
+    assert_eq(con.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND sql IS NOT NULL").fetchone()[0],109,'explicit index count'),
+    assert_eq(con.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='trigger'").fetchone()[0],188,'trigger count'),
     assert_eq([row[1] for row in con.execute("PRAGMA table_info(roles)")][-1],'system_key','roles.system_key column'),
-    assert_eq(con.execute('PRAGMA user_version').fetchone()[0],2,'user_version')))
+    assert_eq(con.execute('PRAGMA user_version').fetchone()[0],3,'user_version')))
 test_ok('T01a nullable system role keys and migration records are supported', lambda: (
     con.execute("INSERT INTO roles(id,tenant_id,name,system_key) VALUES('ROLE_CUSTOM_1','TENANT_DEFAULT','Custom One',NULL)"),
     con.execute("INSERT INTO roles(id,tenant_id,name,system_key) VALUES('ROLE_CUSTOM_2','TENANT_DEFAULT','Custom Two',NULL)"),
@@ -162,7 +162,7 @@ test_ok('T09b posted inventory adjustment generates immutable movement and updat
 
 test_reject('T09 duplicate simple StockItem is rejected', lambda: con.execute("INSERT INTO stock_items(id,product_id,variant_id) VALUES('DUP_SIMPLE','PROD_1',NULL)"))
 test_reject('T10 variant from another product is rejected', lambda: con.execute("INSERT INTO stock_items(id,product_id,variant_id) VALUES('WRONG_VARIANT','PROD_1','VAR_1')"))
-test_reject('T11 duplicate barcode across product and variant is rejected', lambda: con.execute("INSERT INTO product_variants(id,product_id,sku,barcode,variant_name) VALUES('VAR_DUP','PROD_VAR','SKU_DUP','111111','Blue')"))
+test_reject('T11 duplicate barcode across product and variant is rejected', lambda: con.execute("INSERT INTO product_variants(id,product_id,sku,barcode,variant_name,tenant_id) VALUES('VAR_DUP','PROD_VAR','SKU_DUP','111111','Blue','TENANT_DEFAULT')"))
 
 # Quota cross checks and rollback.
 def make_sale(sale_id, wh='WH_DEFAULT', qty=1000, customer='CUST_1', offline='OFF', seq=1, total=1000):
