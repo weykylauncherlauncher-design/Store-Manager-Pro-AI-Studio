@@ -1,0 +1,26 @@
+.gradle/
+**/build/
+.kotlin/
+.idea/
+.vscode/
+.venv/
+__pycache__/
+*.pyc
+.env
+local.properties
+.DS_Store
+Thumbs.db
+*.db-shm
+*.db-wal
+
+# Backup archives
+*.zip
+
+# Test outputs
+test-results/
+
+# Logs
+*.log
+
+# AI Studio local metadata
+.aistudio/
